@@ -1,4 +1,4 @@
-const express = require('express')
+const express = require('express') //express.js
 const app = express()
 var request = require('request')
 
@@ -12,15 +12,15 @@ var connection = mysql.createConnection({
 });
 
 var tokenKey = "fintech202020!#abcd"
-var jwt = require('jsonwebtoken');
-var auth = require('./lib/auth');
+var jwt = require('jsonwebtoken'); // npm install jsonwebtoken
+var auth = require('./lib/auth'); // 미들웨어 사용. 토큰인증 모듈
 
 connection.connect();
 
-app.set('views', __dirname + '/views'); //views파일이 어디에 위치한지
+app.set('views', __dirname + '/views'); //렌더링 할 파일이 어디에 위치한지
 app.set('view engine', 'ejs'); //ejs를 view engine으로 사용
 
-app.use(express.static(__dirname + '/public')); //정보를 공개할 것인지 아닌지
+app.use(express.static(__dirname + '/public')); //디자인, 프론트앤드js, 이미지 파일 등 정적파일 저장
 app.use(express.json());
 app.use(express.urlencoded({extended:false}));
 
@@ -75,6 +75,7 @@ app.get('/authResult', function(req, res){
     // string으로 온 accessToken을 nodejs에서 사용할 수 있게 오브젝트로 바꿈
     var parseData = JSON.parse(body);
     // 새로운 창을 열어서 accessToken, refreshToken, userSeqNo값을 확인
+    // 자식창 데이터 처리
     res.render('resultChild',{data : parseData})
   });
 })
@@ -153,7 +154,8 @@ app.post('/login', function(req, res){
   })
 })
 
-// 계좌목록 가져오기
+/* 계좌목록 가져오기 */
+// 사용자 인증정보 활용 요청
 app.post('/list',auth, function(req, res){
   var user = req.decoded;
   var sql = "SELECT * FROM user WHERE id = ?"
@@ -169,7 +171,7 @@ app.post('/list',auth, function(req, res){
         method : "GET",
         url : "https://testapi.openbanking.or.kr/v2.0/user/me",
         headers : {
-          //db에서 날아오는 값이라 value 변수명을 db랑 맞춰줘야한다.
+          //db에서 날아오는 값(토큰)이라 value 변수명을 db랑 맞춰줘야한다.
           'Authorization' : "Bearer " + results[0].accesstoken
         },
         qs : {
@@ -199,9 +201,11 @@ app.post('/balance', auth, function(req, res){ //auth로 허용된 사용자만 
     var option = {
       method : "GET",
       url : "https://testapi.openbanking.or.kr/v2.0/account/balance/fin_num",
+      // 헤더에 토큰 삽입
       headers : {
         'Authorization' : "Bearer " + results[0].accesstoken
       },
+      // 쿼리 스트링
       qs : {
         bank_tran_id : transId,
         fintech_use_num : finusenum,
@@ -254,7 +258,55 @@ app.post('/transactionlist',auth, function(req, res){
 })
 
 /* 2.5.1. 출금이체 API */
-/* 2.5.3. 이체결과조회 API */ 
-// 만들어보기
+app.post('/withdraw',auth, function(req, res){
+  var user = req.decoded;
+  console.log(user);
+  var finusenum = req.body.fin_use_num
+  var amount = req.body.amount
+  var countnum = Math.floor(Math.random() * 1000000000) + 1;
+  var transId = "T991599190U" + countnum;
+  var sql = "SELECT * FROM user WHERE id = ?"
+  connection.query(sql,[user.userId], function (err, results, fields) {
+        var option = {
+            method : "post",
+            url : "https://testapi.openbanking.or.kr/v2.0/transfer/withdraw/fin_num",
+            headers : {
+                Authorization : "Bearer " + results[0].accesstoken
+            },
+            json : {
+                "bank_tran_id": transId, //은행거래 고유번호
+                "cntr_account_type": "N", //N:계좌, C:계정
+                "cntr_account_num": "7832932596", //계좌번호
+                "dps_print_content": "쇼핑몰환불",
+                "fintech_use_num": "199159919057870978715901", //출금계좌핀테크이용번호
+                "wd_print_content": "쇼핑몰환불",
+                "tran_amt": amount, //거래금액
+                "req_client_fintech_use_num" : "199159919057870978715901", //요쳥고객핀테크이용번호
+                "tran_dtime": "20190910101921",
+                "req_client_name": "서민지",
+                "req_client_num" : "7832932596",
+                "transfer_purpose" : "TR",
+                "recv_client_name": "서민지",
+                "recv_client_bank_code": "097",
+                "recv_client_account_num": "7832932596"
+            }
+        }
+        request(option, function (error, response, body) {
+            console.log(body);
+            var resultObject = body;
+            if(resultObject.rsp_code == "A0000"){
+              //예외처리
+                res.json(1);
+            } 
+            else {
+                res.json(resultObject.rsp_code)
+            }
+
+        });
+
+  });
+})
+/* 2.5.2. 입금이체 API */ 
+// 2-legged방식으로 만들어보기
 
 app.listen(3000)

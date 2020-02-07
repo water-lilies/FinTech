@@ -5,6 +5,9 @@
 <div id="usenum"><%=data.user_seq_no%></div>
 </body>
 <script>
+    // auth는 resultChild를 랜더링
+    // 부모창과 자식창의 관계에 데이터 전송
+    // JsonParse하여 부모페이지에 데이터 입력
    opener.document.getElementById("userAccessToken").value =
        document.getElementById("accessToken").textContent;
    opener.document.getElementById("userRefreshToken").value =

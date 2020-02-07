@@ -181,7 +181,9 @@
     <script src="js/global.script.js"></script>
     <script>
         $("#authBtn").click(function(){
-            var tmpWindow = window.open("about:blank");
+			var tmpWindow = window.open("about:blank");
+			// 사용자 정보와 함께 사용자 인증 API로 이동.
+			// 그 이후, callBack URL로 로컬authResult로 보낸다.
             tmpWindow.location = "https://testapi.openbanking.or.kr/oauth/2.0/authorize?response_type=code&client_id=ofN612I9As9WtydxSIL6j8j0tiA0xrDg46ZgdrRA&redirect_uri=http://localhost:3000/authResult&scope=login inquiry transfer&state=12345678901234567890123456789012&auth_type=0";
         })
         $("#signupBtn").click(function(){
